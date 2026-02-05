@@ -7,7 +7,6 @@ type RouteContext = {
   params: Promise<{ id: string }>
 }
 
-// GET single expense
 export async function GET(
   request: NextRequest,
   { params }: RouteContext
