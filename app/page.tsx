@@ -107,9 +107,8 @@ export default async function Home() {
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2">
               <div className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white p-2 rounded-xl shadow-lg shadow-emerald-500/20">
-                <span className="text-xl">💰</span>
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
+              <span className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
                 FinanceFlow
               </span>
             </Link>
