@@ -2,17 +2,23 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getOrCreateUser } from '@/lib/auth'
 
+// Define the type for the context
+type RouteContext = {
+  params: Promise<{ id: string }>
+}
+
 // GET single expense
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: RouteContext
 ) {
   try {
     const user = await getOrCreateUser()
+    const { id } = await params // ✅ Await params here
 
     const expense = await prisma.expense.findFirst({
       where: {
-        id: params.id,
+        id: id, // Use the destructured id
         userId: user.id,
       },
       include: {
@@ -40,10 +46,11 @@ export async function GET(
 // PUT update expense
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: RouteContext
 ) {
   try {
     const user = await getOrCreateUser()
+    const { id } = await params // ✅ Await params here
     const body = await request.json()
 
     const { title, amount, categoryId, date, description } = body
@@ -51,7 +58,7 @@ export async function PUT(
     // Verify ownership
     const existingExpense = await prisma.expense.findFirst({
       where: {
-        id: params.id,
+        id: id,
         userId: user.id,
       },
     })
@@ -64,7 +71,7 @@ export async function PUT(
     }
 
     const expense = await prisma.expense.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         title,
         amount: parseFloat(amount),
@@ -90,15 +97,16 @@ export async function PUT(
 // DELETE expense
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: RouteContext
 ) {
   try {
     const user = await getOrCreateUser()
+    const { id } = await params // ✅ Await params here
 
     // Verify ownership
     const existingExpense = await prisma.expense.findFirst({
       where: {
-        id: params.id,
+        id: id,
         userId: user.id,
       },
     })
@@ -111,7 +119,7 @@ export async function DELETE(
     }
 
     await prisma.expense.delete({
-      where: { id: params.id },
+      where: { id: id },
     })
 
     return NextResponse.json({ message: 'Expense deleted successfully' })
