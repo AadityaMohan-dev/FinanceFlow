@@ -45,12 +45,12 @@ export async function GET(request: NextRequest) {
     })
 
     // Calculate stats
-    // FIX: Explicitly typed 'sum' and 'exp' to satisfy strict mode
+    // FIX: Added explicit types for sum and exp
     const totalSum = expenses.reduce((sum: number, exp: { amount: number }) => sum + exp.amount, 0)
     
     const avgExpense = expenses.length > 0 ? totalSum / expenses.length : 0
     
-    // FIX: Explicitly typed 'e' in map as well
+    // FIX: Added explicit type for map
     const maxExpense = expenses.length > 0 ? Math.max(...expenses.map((e: { amount: number }) => e.amount)) : 0
     
     const transactionCount = expenses.length
@@ -71,10 +71,23 @@ export async function GET(request: NextRequest) {
     })
 
     const categoriesWithTotals = await Promise.all(
-      categoryBreakdown.map(async (cb) => {
+      // FIX: Added explicit type for cb (Prisma GroupBy result)
+      categoryBreakdown.map(async (cb: { categoryId: string; _sum: { amount: number | null } }) => {
         const category = await prisma.category.findUnique({
           where: { id: cb.categoryId },
         })
+        
+        // Handle case where category might be null (though referential integrity usually prevents this)
+        if (!category) {
+            return {
+                id: cb.categoryId,
+                name: 'Unknown',
+                icon: '?',
+                color: '#cccccc',
+                total: cb._sum.amount || 0
+            }
+        }
+
         return {
           ...category,
           total: cb._sum.amount || 0,
