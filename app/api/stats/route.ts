@@ -45,11 +45,14 @@ export async function GET(request: NextRequest) {
     })
 
     // Calculate stats
-    // FIX: Added ': number' to the sum parameter
-    const totalSum = expenses.reduce((sum: number, exp) => sum + exp.amount, 0)
+    // FIX: Explicitly typed 'sum' and 'exp' to satisfy strict mode
+    const totalSum = expenses.reduce((sum: number, exp: { amount: number }) => sum + exp.amount, 0)
     
     const avgExpense = expenses.length > 0 ? totalSum / expenses.length : 0
-    const maxExpense = expenses.length > 0 ? Math.max(...expenses.map(e => e.amount)) : 0
+    
+    // FIX: Explicitly typed 'e' in map as well
+    const maxExpense = expenses.length > 0 ? Math.max(...expenses.map((e: { amount: number }) => e.amount)) : 0
+    
     const transactionCount = expenses.length
 
     // Category breakdown
