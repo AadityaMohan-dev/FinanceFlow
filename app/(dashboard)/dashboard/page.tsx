@@ -58,6 +58,51 @@ function getPeriodRange(viewMode: 'weekly' | 'monthly' | 'yearly') {
   return { start: startOfYear(now), end: endOfYear(now) }
 }
 
+// --- Reusable Expense Form Component ---
+function ExpenseForm({ 
+  categories, 
+  onAdd 
+}: { 
+  categories: Category[], 
+  onAdd: (e: React.FormEvent<HTMLFormElement>) => void 
+}) {
+  return (
+    <div className="bg-zinc-900 rounded-3xl border border-zinc-800 p-6 shadow-sm">
+      <div className="flex items-center gap-4 mb-6">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+          <Plus className="w-5 h-5 text-white" />
+        </div>
+        <div>
+          <h3 className="text-lg font-bold text-white">Quick Add</h3>
+          <p className="text-xs text-zinc-500">Record a new expense</p>
+        </div>
+      </div>
+
+      <form onSubmit={onAdd} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4">
+        <div className="lg:col-span-4">
+          <input name="title" required placeholder="Description" className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none text-sm transition-all placeholder:text-zinc-600 text-white" />
+        </div>
+        <div className="lg:col-span-2">
+          <input name="amount" type="number" step="0.01" required placeholder="Amount" className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none text-sm transition-all placeholder:text-zinc-600 text-white" />
+        </div>
+        <div className="lg:col-span-3">
+          <select name="categoryId" required className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none text-sm transition-all text-zinc-300 appearance-none cursor-pointer">
+            {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+          </select>
+        </div>
+        <div className="lg:col-span-2">
+          <input name="date" type="date" defaultValue={format(new Date(), 'yyyy-MM-dd')} required className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none text-sm transition-all text-zinc-300 cursor-pointer" />
+        </div>
+        <div className="lg:col-span-1">
+          <button type="submit" className="w-full h-full min-h-[46px] bg-white text-black rounded-xl font-bold hover:bg-zinc-200 transition-colors flex items-center justify-center shadow-lg shadow-white/10">
+            <Plus className="w-5 h-5" />
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   const { user } = useUser()
   
@@ -72,7 +117,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
-  // Ref for budget input
   const budgetInputRef = useRef<HTMLInputElement>(null)
 
   // --- Data Fetching ---
@@ -90,7 +134,6 @@ export default function DashboardPage() {
       setCategories(Array.isArray(cats) ? cats : [])
       setAllExpenses(Array.isArray(exps) ? exps : [])
 
-      // Fetch budgets
       const budgetPromises = ['weekly', 'monthly', 'yearly'].map(period =>
         fetch(`/api/budget?period=${period}`, { cache: 'no-store' })
           .then(r => r.ok ? r.json() : null)
@@ -196,12 +239,9 @@ export default function DashboardPage() {
   }
 
   // --- Actions ---
-
-  // FIXED: Add Expense
-  const addExpense = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAddExpense = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    // 1. Capture form reference immediately before async operation
-    const form = e.currentTarget 
+    const form = e.currentTarget // Capture form reference immediately
     const formData = new FormData(form)
     
     const payload = {
@@ -223,15 +263,13 @@ export default function DashboardPage() {
       if (res.ok) {
         const newExpense = await res.json()
         setAllExpenses(prev => [newExpense, ...prev])
-        // 2. Use the captured form variable to reset
-        form.reset() 
+        form.reset() // Use captured reference to reset
       }
     } catch (err) {
       console.error(err)
     }
   }
 
-  // FIXED: Update Budget (handled via form submit now)
   const handleBudgetSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const amount = parseFloat(budgetInputRef.current?.value || '0')
@@ -263,7 +301,7 @@ export default function DashboardPage() {
 
   return (
     <>
-      {/* --- Budget Modal (Fixed form) --- */}
+      {/* --- Budget Modal --- */}
       {budgetModalOpen && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 max-w-md w-full shadow-2xl animate-in fade-in zoom-in duration-200">
@@ -283,7 +321,7 @@ export default function DashboardPage() {
                   ref={budgetInputRef}
                   type="number"
                   defaultValue={currentBudget.amount || ''}
-                  className="w-full pl-12 pr-6 py-5 text-3xl font-bold bg-zinc-800 border border-zinc-700 rounded-2xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all"
+                  className="w-full pl-12 pr-6 py-5 text-3xl font-bold bg-zinc-800 border border-zinc-700 rounded-2xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all text-white"
                   placeholder="0"
                   autoFocus
                 />
@@ -313,44 +351,90 @@ export default function DashboardPage() {
         
         {/* --- Header --- */}
         <header className="bg-zinc-900/80 backdrop-blur-xl border-b border-zinc-800 sticky top-0 z-40">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            
+            {/* Desktop Layout: Single Row */}
+            <div className="hidden md:flex items-center justify-between">
               <Link href="/" className="flex items-center gap-3 group">
                 <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform">
                   <DollarSign className="w-6 h-6 text-white" />
                 </div>
-                <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
+                <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
                   FinanceFlow
                 </h1>
               </Link>
 
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex bg-zinc-800/50 border border-zinc-700 p-1 rounded-xl overflow-hidden">
+              <div className="flex items-center gap-2 bg-zinc-800/50 border border-zinc-700 p-1 rounded-xl">
+                {(['weekly', 'monthly', 'yearly'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setViewMode(mode)}
+                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                      viewMode === mode
+                        ? 'bg-zinc-700 text-white shadow-sm'
+                        : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
+                    }`}
+                  >
+                    {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-4">
+                <button onClick={() => fetchData()} className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors">
+                  <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                </button>
+                <div className="h-6 w-px bg-zinc-800" />
+                <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: "w-9 h-9" } }} />
+              </div>
+            </div>
+
+            {/* Mobile Layout: Two Rows (Clean & Accessible) */}
+            <div className="md:hidden flex flex-col gap-4 py-1">
+              {/* Row 1: Logo & Profile */}
+              <div className="flex items-center justify-between">
+                <Link href="/" className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center shadow-md">
+                    <DollarSign className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="text-lg font-bold text-white">FinanceFlow</span>
+                </Link>
+                <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: "w-8 h-8" } }} />
+              </div>
+
+              {/* Row 2: Controls (Full width) */}
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1 flex bg-zinc-800/50 border border-zinc-700 p-1 rounded-lg">
                   {(['weekly', 'monthly', 'yearly'] as const).map((mode) => (
                     <button
                       key={mode}
                       onClick={() => setViewMode(mode)}
-                      className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all text-center ${
                         viewMode === mode
                           ? 'bg-zinc-700 text-white shadow-sm'
-                          : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
+                          : 'text-zinc-400 hover:text-zinc-200'
                       }`}
                     >
                       {mode.charAt(0).toUpperCase() + mode.slice(1)}
                     </button>
                   ))}
                 </div>
-
-                <div className="flex items-center gap-3 pl-4 border-l border-zinc-800">
-                  <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: "w-9 h-9" } }} />
-                </div>
+                <button onClick={() => fetchData()} className="p-2 bg-zinc-800/50 border border-zinc-700 rounded-lg text-zinc-400 hover:text-white transition-colors">
+                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                </button>
               </div>
             </div>
+
           </div>
         </header>
 
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           
+          {/* --- MOBILE ONLY: ADD EXPENSE FIRST --- */}
+          <div className="block lg:hidden mb-6 sm:mb-8">
+            <ExpenseForm categories={categories} onAdd={handleAddExpense} />
+          </div>
+
           {/* --- Stats Grid --- */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             
@@ -456,39 +540,9 @@ export default function DashboardPage() {
           {activeTab === 'overview' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
               
-              {/* Quick Add Form */}
-              <div className="bg-zinc-900 rounded-3xl border border-zinc-800 p-6 sm:p-8">
-                <div className="flex items-center gap-4 mb-6">
-                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                      <Plus className="w-5 h-5 text-white" />
-                   </div>
-                   <div>
-                      <h3 className="text-lg font-bold text-white">Quick Add</h3>
-                      <p className="text-xs text-zinc-500">Record a new expense instantly</p>
-                   </div>
-                </div>
-
-                <form onSubmit={addExpense} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4">
-                   <div className="lg:col-span-4">
-                      <input name="title" required placeholder="Description (e.g. Coffee)" className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none text-sm transition-all placeholder:text-zinc-600" />
-                   </div>
-                   <div className="lg:col-span-2">
-                      <input name="amount" type="number" step="0.01" required placeholder="Amount" className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none text-sm transition-all placeholder:text-zinc-600" />
-                   </div>
-                   <div className="lg:col-span-3">
-                      <select name="categoryId" required className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none text-sm transition-all text-zinc-300 appearance-none cursor-pointer">
-                        {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
-                      </select>
-                   </div>
-                   <div className="lg:col-span-2">
-                      <input name="date" type="date" defaultValue={format(new Date(), 'yyyy-MM-dd')} required className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none text-sm transition-all text-zinc-300 cursor-pointer" />
-                   </div>
-                   <div className="lg:col-span-1">
-                      <button type="submit" className="w-full h-full min-h-[46px] bg-white text-black rounded-xl font-bold hover:bg-zinc-200 transition-colors flex items-center justify-center">
-                         <Plus className="w-5 h-5" />
-                      </button>
-                   </div>
-                </form>
+              {/* DESKTOP ONLY: Quick Add Form */}
+              <div className="hidden lg:block">
+                <ExpenseForm categories={categories} onAdd={handleAddExpense} />
               </div>
 
               {/* Charts Row */}
@@ -579,7 +633,7 @@ export default function DashboardPage() {
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder="Search transactions..." 
-                        className="w-full pl-12 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:border-emerald-500 outline-none text-sm" 
+                        className="w-full pl-12 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:border-emerald-500 outline-none text-sm text-white" 
                       />
                    </div>
                 </div>
