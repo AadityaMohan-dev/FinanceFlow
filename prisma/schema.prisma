@@ -28,7 +28,6 @@ model Category {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   userId    String?
-  budgets   Budget[]
   user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expenses  Expense[]
 
@@ -54,19 +53,16 @@ model Expense {
 }
 
 model Budget {
-  id         String       @id @default(cuid())
-  amount     Float
-  period     BudgetPeriod @default(MONTHLY)
-  startDate  DateTime
-  endDate    DateTime?
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-  userId     String
-  categoryId String
-  category   Category     @relation(fields: [categoryId], references: [id])
-  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String       @id @default(cuid())
+  amount    Float
+  period    BudgetPeriod @default(MONTHLY)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, categoryId, period])
+  @@unique([userId, period])
+  @@index([userId])
 }
 
 enum BudgetPeriod {
